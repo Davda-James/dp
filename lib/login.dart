@@ -81,7 +81,7 @@ class LoginScreenState extends State<Login> { // Changed here
                               controller: _emailController,
                               onChanged: (value) {
                                 setState(() {
-                                  _isEmailValid = value.endsWith('.iitmandi.ac.in');
+                                  _isEmailValid = value.endsWith('@iitmandi.ac.in');
                                   // Show the cross mark only when the email is invalid and non-empty
                                   _showInvalidEmailIcon = value.isNotEmpty && !_isEmailValid;
                                 });
