@@ -4,6 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'login.dart'; // Assuming you still have the login screen
 import 'home.dart'; // Import your HomePage here
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Signup extends StatefulWidget {
   const Signup({super.key});
@@ -15,7 +18,8 @@ class Signup extends StatefulWidget {
 class SignupState extends State<Signup> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _confirmPasswordController = TextEditingController();
+  final TextEditingController _confirmPasswordController =
+      TextEditingController();
 
   File? _profileImage;
   bool _isEmailValid = false;
@@ -29,7 +33,8 @@ class SignupState extends State<Signup> {
   // Function to pick an image using file picker
   Future<void> _pickImage() async {
     try {
-      FilePickerResult? result = await FilePicker.platform.pickFiles(type: FileType.image);
+      FilePickerResult? result =
+          await FilePicker.platform.pickFiles(type: FileType.image);
       if (result != null && result.files.single.path != null) {
         setState(() {
           _profileImage = File(result.files.single.path!);
@@ -44,15 +49,17 @@ class SignupState extends State<Signup> {
   // Validate email function
   void _validateEmail(String value) {
     setState(() {
-      _isEmailValid = value.endsWith('@students.iitmandi.ac.in') || value.contains('@'); // Allow other emails for testing
+      _isEmailValid = value.endsWith('@students.iitmandi.ac.in') ||
+          value.contains('@'); // Allow other emails for testing
     });
   }
 
   // Check if passwords match
   void _checkPasswordsMatch() {
     setState(() {
-      _passwordsMatch = _passwordController.text == _confirmPasswordController.text &&
-          _passwordController.text.isNotEmpty;
+      _passwordsMatch =
+          _passwordController.text == _confirmPasswordController.text &&
+              _passwordController.text.isNotEmpty;
     });
   }
 
@@ -127,22 +134,23 @@ class SignupState extends State<Signup> {
                                 decoration: BoxDecoration(
                                   color: Colors.grey[200],
                                   borderRadius: BorderRadius.circular(50),
-                                  border: Border.all(color: const Color(0xff575353), width: 3),
+                                  border: Border.all(
+                                      color: const Color(0xff575353), width: 3),
                                 ),
                                 child: _profileImage != null
                                     ? ClipOval(
-                                  child: Image.file(
-                                    _profileImage!,
-                                    fit: BoxFit.cover,
-                                    width: 100,
-                                    height: 100,
-                                  ),
-                                )
+                                        child: Image.file(
+                                          _profileImage!,
+                                          fit: BoxFit.cover,
+                                          width: 100,
+                                          height: 100,
+                                        ),
+                                      )
                                     : const Icon(
-                                  Icons.person,
-                                  color: Colors.grey,
-                                  size: 60,
-                                ),
+                                        Icons.person,
+                                        color: Colors.grey,
+                                        size: 60,
+                                      ),
                               ),
                               Positioned(
                                 bottom: 0,
@@ -176,15 +184,18 @@ class SignupState extends State<Signup> {
                             });
                           },
                           decoration: InputDecoration(
-                            prefixIcon: const Icon(Icons.email, color: Colors.grey),
+                            prefixIcon:
+                                const Icon(Icons.email, color: Colors.grey),
                             suffixIcon: _hasStartedTyping
                                 ? Icon(
-                              _isEmailValid ? Icons.check : Icons.close,
-                              color: _isEmailValid ? Colors.green : Colors.red,
-                            )
+                                    _isEmailValid ? Icons.check : Icons.close,
+                                    color: _isEmailValid
+                                        ? Colors.green
+                                        : Colors.red,
+                                  )
                                 : null,
                             label: const Text(
-                              'Phone or Gmail',
+                              'Institute Gmail',
                               style: TextStyle(
                                 fontWeight: FontWeight.normal,
                                 color: Color(0xff000000),
@@ -199,10 +210,13 @@ class SignupState extends State<Signup> {
                           obscureText: !_isPasswordVisible,
                           onChanged: (value) => _checkPasswordsMatch(),
                           decoration: InputDecoration(
-                            prefixIcon: const Icon(Icons.lock, color: Colors.grey),
+                            prefixIcon:
+                                const Icon(Icons.lock, color: Colors.grey),
                             suffixIcon: IconButton(
                               icon: Icon(
-                                _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                                _isPasswordVisible
+                                    ? Icons.visibility
+                                    : Icons.visibility_off,
                                 color: Colors.grey,
                               ),
                               onPressed: () {
@@ -227,15 +241,19 @@ class SignupState extends State<Signup> {
                           obscureText: !_isConfirmPasswordVisible,
                           onChanged: (value) => _checkPasswordsMatch(),
                           decoration: InputDecoration(
-                            prefixIcon: const Icon(Icons.lock, color: Colors.grey),
+                            prefixIcon:
+                                const Icon(Icons.lock, color: Colors.grey),
                             suffixIcon: IconButton(
                               icon: Icon(
-                                _isConfirmPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                                _isConfirmPasswordVisible
+                                    ? Icons.visibility
+                                    : Icons.visibility_off,
                                 color: Colors.grey,
                               ),
                               onPressed: () {
                                 setState(() {
-                                  _isConfirmPasswordVisible = !_isConfirmPasswordVisible;
+                                  _isConfirmPasswordVisible =
+                                      !_isConfirmPasswordVisible;
                                 });
                               },
                             ),
@@ -256,17 +274,54 @@ class SignupState extends State<Signup> {
                               _isPressed = true;
                             });
                           },
-                          onTapUp: (details) {
+                          onTapUp: (details) async {
                             setState(() {
                               _isPressed = false;
                             });
                             if (_isEmailValid && _passwordsMatch) {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const HomePage(title: 'Home'), // Redirecting to HomePage
-                                ),
-                              );
+                              try {
+                                UserCredential userCredential =
+                                    await FirebaseAuth.instance
+                                        .createUserWithEmailAndPassword(
+                                  email: _emailController.text,
+                                  password: _passwordController.text,
+                                );
+                                String userid = userCredential.user!.uid;
+                                String? downloadUrl;
+                                if (_profileImage != null) {
+                                  Reference ref = FirebaseStorage.instance
+                                      .ref()
+                                      .child(
+                                          'profile_images/$userid/profile.jpg');
+                                  await ref.putFile(_profileImage!);
+                                  downloadUrl = await ref.getDownloadURL();
+                                }
+                                // Create user document in Firestore
+                                await FirebaseFirestore.instance
+                                    .collection('Users')
+                                    .doc(userid)
+                                    .set({
+                                  'userId': userid,
+                                  'email': _emailController.text,
+                                  'profileImageUrl': downloadUrl ?? null,
+                                  'createdAt': FieldValue.serverTimestamp(),
+                                  'updatedAt': FieldValue.serverTimestamp(),
+                                  'isAdmin': false, // Set this as needed
+                                });
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const HomePage(
+                                        title:
+                                            'Home'), // Redirecting to HomePage
+                                  ),
+                                );
+                              } catch (e) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                      content: Text('Error: ${e.toString()}')),
+                                );
+                              }
                             }
                           },
                           onTapCancel: () {
@@ -285,7 +340,9 @@ class SignupState extends State<Signup> {
                                 _isHovered = false;
                               });
                             },
-                            cursor: (_isEmailValid && _passwordsMatch) ? SystemMouseCursors.click : SystemMouseCursors.basic,
+                            cursor: (_isEmailValid && _passwordsMatch)
+                                ? SystemMouseCursors.click
+                                : SystemMouseCursors.basic,
                             child: AnimatedContainer(
                               duration: const Duration(milliseconds: 200),
                               curve: Curves.easeInOut,
@@ -295,24 +352,27 @@ class SignupState extends State<Signup> {
                                 borderRadius: BorderRadius.circular(30),
                                 gradient: (_isEmailValid && _passwordsMatch)
                                     ? (_isHovered
-                                    ? const LinearGradient(
-                                  colors: [
-                                    Color(0xff8E142D), // Darker red on hover
-                                    Color(0xff1F0E27), // Darker purple on hover
-                                  ],
-                                )
+                                        ? const LinearGradient(
+                                            colors: [
+                                              Color(
+                                                  0xff8E142D), // Darker red on hover
+                                              Color(
+                                                  0xff1F0E27), // Darker purple on hover
+                                            ],
+                                          )
+                                        : const LinearGradient(
+                                            colors: [
+                                              Color(0xff000000), // Custom red
+                                              Color(
+                                                  0xff000000), // Custom purple
+                                            ],
+                                          ))
                                     : const LinearGradient(
-                                  colors: [
-                                    Color(0xff000000), // Custom red
-                                    Color(0xff000000), // Custom purple
-                                  ],
-                                ))
-                                    : const LinearGradient(
-                                  colors: [
-                                    Colors.grey, // Greyed-out background
-                                    Colors.grey,
-                                  ],
-                                ),
+                                        colors: [
+                                          Colors.grey, // Greyed-out background
+                                          Colors.grey,
+                                        ],
+                                      ),
                               ),
                               child: Center(
                                 child: Text(

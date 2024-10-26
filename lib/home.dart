@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:google_nav_bar/google_nav_bar.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'profile.dart'; // Ensure you import the LineIcons package
 import 'sidebar.dart';
 
@@ -11,6 +12,48 @@ class HomePage extends StatefulWidget {
   HomePageState createState() => HomePageState();
 }
 
+class AvailableBusesList extends StatelessWidget {
+  final List<Map<String, dynamic>> availableBuses;
+  final VoidCallback onClose;
+
+  AvailableBusesList({required this.availableBuses, required this.onClose});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text(
+            'Available Buses',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 10),
+          Expanded(
+            child: ListView.builder(
+              itemCount: availableBuses.length,
+              itemBuilder: (context, index) {
+                String busInfo = '${availableBuses[index]['busId']}'; // Example
+                return ListTile(
+                  title: Text(busInfo),
+                  onTap: () {
+                    Navigator.pop(context); // Close bottom sheet on tap
+                  },
+                );
+              },
+            ),
+          ),
+          ElevatedButton(
+            onPressed: onClose,
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class HomePageState extends State<HomePage>
     with SingleTickerProviderStateMixin {
   int _selectedIndex = 0;
@@ -18,14 +61,25 @@ class HomePageState extends State<HomePage>
   String _selectedToLocation = 'To';
   DateTime? _selectedDate;
   String? _selectedTimeSlot;
+  String? selectedBusId;
 
-  final List<String> _locations = ['North Campus', 'South Campus', 'Mandi'];
+  final List<String> _locations = ['North Campus', 'Mandi'];
 
   // Animation controller for notification icon
   late AnimationController _animationController;
   late Animation<double> _animation;
 
-  final List<String> _timeSlots = ['Morning', 'Afternoon', 'Evening', 'Night'];
+  final List<String> _timeSlots = [
+    '7:00 AM',
+    '8:00 AM',
+    '10:00 AM',
+    '12:00 PM',
+    '3:15 PM',
+    '5:40 PM',
+    '7:00 PM',
+    '8:00 PM',
+    '9:00 PM'
+  ];
 
   @override
   void initState() {
@@ -57,6 +111,68 @@ class HomePageState extends State<HomePage>
 
   // Inside your HomePageState class
 
+  List<String> _getFilteredLocations() {
+    if (_selectedFromLocation == 'Mandi') {
+      return ['North Campus via South']; // Only option when "From" is Mandi
+    } else if (_selectedFromLocation == 'North Campus') {
+      return [
+        'Mandi via South',
+        'Mandi (direct)'
+      ]; // Options when "From" is North Campus
+    }
+    return _timeSlots;
+  }
+
+  Future<List<Map<String, dynamic>>> fetchAvailableBuses() async {
+    final String route = '$_selectedFromLocation $_selectedToLocation';
+    final String selectedSlot = _selectedTimeSlot ?? '';
+
+    // Fetch buses from Firestore
+    try {
+      QuerySnapshot querySnapshot = await FirebaseFirestore.instance
+          .collection('Buses')
+          .where('time_route.$selectedSlot', isEqualTo: route)
+          .get();
+
+      // Convert QuerySnapshot to List of Maps
+      return querySnapshot.docs
+          .map((doc) => doc.data() as Map<String, dynamic>)
+          .toList();
+    } catch (e) {
+      _showErrorDialog(e.toString());
+    }
+    return [];
+  }
+
+  void _showErrorDialog(String errorMessage) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Error Occurred'),
+        content: Text(errorMessage),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Function to show available buses in a modal bottom sheet
+  void _showAvailableBuses(List<Map<String, dynamic>> availableBuses) {
+    showModalBottomSheet(
+      context: context,
+      builder: (BuildContext context) {
+        return AvailableBusesList(
+          availableBuses: availableBuses,
+          onClose: () => Navigator.pop(context),
+        );
+      },
+    );
+  }
+
   void _showLocationDrawer(String type) {
     showModalBottomSheet(
       context: context,
@@ -72,27 +188,39 @@ class HomePageState extends State<HomePage>
               const SizedBox(height: 10),
               ListView.builder(
                 shrinkWrap: true,
-                itemCount: _locations.length,
+                itemCount: (type == 'from')
+                    ? _locations.length
+                    : (_selectedFromLocation != 'From'
+                        ? _getFilteredLocations().length
+                        : 0),
                 itemBuilder: (context, index) {
-                  if (type == 'to' &&
-                      _selectedFromLocation != 'From' &&
-                      _locations[index] == _selectedFromLocation) {
-                    return const SizedBox.shrink();
-                  } // Skip this location
+                  String locationToDisplay = (type == 'from')
+                      ? _locations[index]
+                      : _getFilteredLocations()[index];
+                  // if (type == 'to' &&
+                  //     _selectedFromLocation != 'From' &&
+                  //     _locations[index] == _selectedFromLocation) {
+                  //   return const SizedBox.shrink();
+                  // } // Skip this location
                   return ListTile(
-                    title: Text(_locations[index]),
+                    title: Text(locationToDisplay),
                     onTap: () {
                       setState(() {
                         if (type == 'from') {
-                          _selectedFromLocation = _locations[index];
+                          _selectedFromLocation = locationToDisplay;
                           // Reset the To location to default when From location changes
                           _selectedToLocation = 'To'; // Reset to default
+                          _selectedTimeSlot = null;
                         } else {
-                          _selectedToLocation = _locations[index];
+                          _selectedToLocation = locationToDisplay;
+                          _selectedTimeSlot = null;
                         }
                       });
                       Navigator.of(context).pop(); // Close the bottom sheet
                     },
+                    enabled: (type == 'to' && _selectedFromLocation == 'From')
+                        ? false
+                        : true,
                   );
                 },
               ),
@@ -101,6 +229,16 @@ class HomePageState extends State<HomePage>
         );
       },
     );
+  }
+
+  List<String> _getAvailableTimings() {
+    if (_selectedFromLocation == 'North Campus' &&
+        _selectedToLocation == 'Mandi (direct)') {
+      return ['5:40 PM']; // Only show this timing
+    }
+
+    // You can add more conditions here for other combinations
+    return _timeSlots; // Default timings or other combinations
   }
 
   @override
@@ -281,9 +419,12 @@ class HomePageState extends State<HomePage>
                           filled: true,
                           fillColor: Colors.white,
                         ),
-                        value: _selectedTimeSlot,
+                        value:
+                            _getAvailableTimings().contains(_selectedTimeSlot)
+                                ? _selectedTimeSlot
+                                : null,
                         hint: const Text('Choose a time slot'),
-                        items: _timeSlots.map((String slot) {
+                        items: _getAvailableTimings().map((String slot) {
                           return DropdownMenuItem<String>(
                             value: slot,
                             child: Text(slot),
@@ -299,8 +440,10 @@ class HomePageState extends State<HomePage>
                               }
                             : null,
                         isExpanded: true,
+                        menuMaxHeight: 250,
                       ),
                     ),
+                    
                   ],
                 ),
               ),

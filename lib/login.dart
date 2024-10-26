@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart'; // Import Firebase Auth
 import 'signup.dart';
 import 'home.dart'; // Import the home page here
 
@@ -9,15 +10,18 @@ class Login extends StatefulWidget {
   LoginScreenState createState() => LoginScreenState(); // Changed here
 }
 
-class LoginScreenState extends State<Login> { // Changed here
+class LoginScreenState extends State<Login> {
+  // Changed here
   bool _isPasswordVisible = false;
   final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController(); // Controller for password
+  final TextEditingController _passwordController =
+      TextEditingController(); // Controller for password
   bool _isEmailValid = false;
   bool _isPasswordEntered = false; // Track if the password is entered
   bool _isHovered = false;
   bool _isPressed = false;
-  bool _showInvalidEmailIcon = false; // Track if the invalid email icon should show
+  bool _showInvalidEmailIcon =
+      false; // Track if the invalid email icon should show
   final FocusNode _emailFocusNode = FocusNode();
 
   @override
@@ -26,6 +30,51 @@ class LoginScreenState extends State<Login> { // Changed here
     _emailController.dispose();
     _passwordController.dispose(); // Dispose password controller
     super.dispose();
+  }
+
+  Future<void> _login() async {
+    if (_isEmailValid && _isPasswordEntered) {
+      try {
+        // Attempt to sign in the user with email and password
+        UserCredential userCredential =
+            await FirebaseAuth.instance.signInWithEmailAndPassword(
+          email: _emailController.text.trim(),
+          password: _passwordController.text.trim(),
+        );
+
+        // Navigate to home page on successful login
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const HomePage(
+              title: 'Home',
+            ),
+          ),
+        );
+      } on FirebaseAuthException catch (e) {
+        _showErrorDialog(e.code);
+      }
+    }
+  }
+
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Error'),
+          content: Text(message),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('OK'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -81,18 +130,20 @@ class LoginScreenState extends State<Login> { // Changed here
                               controller: _emailController,
                               onChanged: (value) {
                                 setState(() {
-                                  _isEmailValid = value.endsWith('@iitmandi.ac.in');
+                                  _isEmailValid =
+                                      value.endsWith('@iitmandi.ac.in');
                                   // Show the cross mark only when the email is invalid and non-empty
-                                  _showInvalidEmailIcon = value.isNotEmpty && !_isEmailValid;
+                                  _showInvalidEmailIcon =
+                                      value.isNotEmpty && !_isEmailValid;
                                 });
                               },
                               decoration: InputDecoration(
                                 prefixIcon: const Icon(Icons.email),
                                 suffixIcon: _showInvalidEmailIcon
                                     ? const Icon(
-                                  Icons.close,
-                                  color: Colors.red,
-                                )
+                                        Icons.close,
+                                        color: Colors.red,
+                                      )
                                     : null, // No cross mark when the email is valid or empty
                                 label: const Text(
                                   'Email',
@@ -160,17 +211,8 @@ class LoginScreenState extends State<Login> { // Changed here
                               onTapUp: (details) {
                                 setState(() {
                                   _isPressed = false;
+                                  _login();
                                 });
-
-                                if (_isEmailValid && _isPasswordEntered) {
-                                  // Redirect to home page if both email and password are valid
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => const HomePage(title: 'Home',), // Replace with your home page
-                                    ),
-                                  );
-                                }
                               },
                               onTapCancel: () {
                                 setState(() {
@@ -198,39 +240,40 @@ class LoginScreenState extends State<Login> { // Changed here
                                   width: _isPressed ? 290 : 300,
                                   decoration: BoxDecoration(
                                     borderRadius: BorderRadius.circular(30),
-                                    gradient: (_isEmailValid && _isPasswordEntered)
-                                        ? LinearGradient(
-                                      colors: _isHovered
-                                          ? [
-                                        const Color(0xff8E142D),
-                                        const Color(0xff1F0E27),
-                                      ]
-                                          : [
-                                        const Color(0xff000000),
-                                        const Color(0xff000000),
-                                      ],
-                                    )
-                                        : const LinearGradient(
-                                      colors: [
-                                        Colors.grey,
-                                        Colors.grey,
-                                      ],
-                                    ),
+                                    gradient:
+                                        (_isEmailValid && _isPasswordEntered)
+                                            ? LinearGradient(
+                                                colors: _isHovered
+                                                    ? [
+                                                        const Color(0xff8E142D),
+                                                        const Color(0xff1F0E27),
+                                                      ]
+                                                    : [
+                                                        const Color(0xff000000),
+                                                        const Color(0xff000000),
+                                                      ],
+                                              )
+                                            : const LinearGradient(
+                                                colors: [
+                                                  Colors.grey,
+                                                  Colors.grey,
+                                                ],
+                                              ),
                                     boxShadow: _isHovered
                                         ? [
-                                      const BoxShadow(
-                                        color: Colors.black38,
-                                        offset: Offset(0, 6),
-                                        blurRadius: 10,
-                                      ),
-                                    ]
+                                            const BoxShadow(
+                                              color: Colors.black38,
+                                              offset: Offset(0, 6),
+                                              blurRadius: 10,
+                                            ),
+                                          ]
                                         : const [
-                                      BoxShadow(
-                                        color: Colors.black26,
-                                        offset: Offset(0, 4),
-                                        blurRadius: 8,
-                                      ),
-                                    ],
+                                            BoxShadow(
+                                              color: Colors.black26,
+                                              offset: Offset(0, 4),
+                                              blurRadius: 8,
+                                            ),
+                                          ],
                                   ),
                                   child: const Center(
                                     child: Text(
