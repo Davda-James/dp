@@ -33,28 +33,36 @@ class LoginScreenState extends State<Login> {
   }
 
   Future<void> _login() async {
-    if (_isEmailValid && _isPasswordEntered) {
-      try {
-        // Attempt to sign in the user with email and password
-        UserCredential userCredential =
-            await FirebaseAuth.instance.signInWithEmailAndPassword(
-          email: _emailController.text.trim(),
-          password: _passwordController.text.trim(),
-        );
+    // if (_isEmailValid && _isPasswordEntered) {
+    //   try {
+    //     // Attempt to sign in the user with email and password
+    //     UserCredential userCredential =
+    //         await FirebaseAuth.instance.signInWithEmailAndPassword(
+    //       email: _emailController.text.trim(),
+    //       password: _passwordController.text.trim(),
+    //     );
 
-        // Navigate to home page on successful login
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => const HomePage(
-              title: 'Home',
-            ),
-          ),
-        );
-      } on FirebaseAuthException catch (e) {
-        _showErrorDialog(e.code);
-      }
-    }
+    //     // Navigate to home page on successful login
+    //     Navigator.pushReplacement(
+    //       context,
+    //       MaterialPageRoute(
+    //         builder: (context) => const HomePage(
+    //           title: 'Home',
+    //         ),
+    //       ),
+    //     );
+    //   } on FirebaseAuthException catch (e) {
+    //     _showErrorDialog(e.code);
+    //   }
+    // }
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const HomePage(
+          title: 'Home',
+        ),
+      ),
+    );
   }
 
   void _showErrorDialog(String message) {
@@ -131,7 +139,7 @@ class LoginScreenState extends State<Login> {
                               onChanged: (value) {
                                 setState(() {
                                   _isEmailValid =
-                                      value.endsWith('@iitmandi.ac.in');
+                                      value.endsWith('iitmandi.ac.in');
                                   // Show the cross mark only when the email is invalid and non-empty
                                   _showInvalidEmailIcon =
                                       value.isNotEmpty && !_isEmailValid;

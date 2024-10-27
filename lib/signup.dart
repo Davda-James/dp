@@ -49,7 +49,7 @@ class SignupState extends State<Signup> {
   // Validate email function
   void _validateEmail(String value) {
     setState(() {
-      _isEmailValid = value.endsWith('@students.iitmandi.ac.in') ||
+      _isEmailValid = value.endsWith('iitmandi.ac.in') ||
           value.contains('@'); // Allow other emails for testing
     });
   }

@@ -15,40 +15,58 @@ class HomePage extends StatefulWidget {
 class AvailableBusesList extends StatelessWidget {
   final List<Map<String, dynamic>> availableBuses;
   final VoidCallback onClose;
+  final ValueChanged<String> onBusSelected;
 
-  AvailableBusesList({required this.availableBuses, required this.onClose});
+  AvailableBusesList({
+    required this.availableBuses,
+    required this.onClose,
+    required this.onBusSelected,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Text(
-            'Available Buses',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 10),
-          Expanded(
-            child: ListView.builder(
-              itemCount: availableBuses.length,
-              itemBuilder: (context, index) {
-                String busInfo = '${availableBuses[index]['busId']}'; // Example
-                return ListTile(
-                  title: Text(busInfo),
-                  onTap: () {
-                    Navigator.pop(context); // Close bottom sheet on tap
-                  },
-                );
-              },
+    return FractionallySizedBox(
+      heightFactor: 0.5,
+      child: Container(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Available Buses',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
-          ),
-          ElevatedButton(
-            onPressed: onClose,
-            child: const Text('Close'),
-          ),
-        ],
+            const SizedBox(height: 10),
+            Expanded(
+              child: SingleChildScrollView(
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: availableBuses.length,
+                  itemBuilder: (context, index) {
+                    String busInfo =
+                        '${availableBuses[index]['busId']}'; // Example
+                    return ListTile(
+                      title: Text(busInfo),
+                      onTap: () {
+                        onBusSelected(busInfo);
+                        Navigator.pop(context); // Close bottom sheet on tap
+                      },
+                    );
+                  },
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            Align(
+              alignment: Alignment.bottomCenter,
+              child: ElevatedButton(
+                onPressed: onClose,
+                child: const Text('Close'),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -61,8 +79,13 @@ class HomePageState extends State<HomePage>
   String _selectedToLocation = 'To';
   DateTime? _selectedDate;
   String? _selectedTimeSlot;
-  String? selectedBusId;
+  String? _selectedBusId;
 
+  Map<int, String> routeMapping = {
+    1: 'North Campus Mandi via South',
+    2: 'North Campus Mandi (direct)',
+    3: 'Mandi North Campus via South'
+  };
   final List<String> _locations = ['North Campus', 'Mandi'];
 
   // Animation controller for notification icon
@@ -135,9 +158,11 @@ class HomePageState extends State<HomePage>
           .get();
 
       // Convert QuerySnapshot to List of Maps
-      return querySnapshot.docs
+      final List<Map<String, dynamic>> documents = querySnapshot.docs
           .map((doc) => doc.data() as Map<String, dynamic>)
           .toList();
+      print(selectedSlot);
+      return documents;
     } catch (e) {
       _showErrorDialog(e.toString());
     }
@@ -166,11 +191,24 @@ class HomePageState extends State<HomePage>
       context: context,
       builder: (BuildContext context) {
         return AvailableBusesList(
-          availableBuses: availableBuses,
-          onClose: () => Navigator.pop(context),
-        );
+            availableBuses: availableBuses,
+            onClose: () => Navigator.pop(context),
+            onBusSelected: (String busId) {
+              setState(() {
+                _selectedBusId = busId;
+              });
+            });
       },
     );
+  }
+
+  void _handleBusTileTap() async {
+    if (_selectedTimeSlot != null) {
+      List<Map<String, dynamic>> availableBuses = await fetchAvailableBuses();
+      _showAvailableBuses(availableBuses);
+    } else {
+      _showErrorDialog('Please fill all details before selecting a bus.');
+    }
   }
 
   void _showLocationDrawer(String type) {
@@ -443,7 +481,22 @@ class HomePageState extends State<HomePage>
                         menuMaxHeight: 250,
                       ),
                     ),
-                    
+                    const Divider(),
+                    // Bus selected
+                    ListTile(
+                      leading:
+                          const Icon(Icons.directions_bus, color: Colors.black),
+                      title: Text(
+                        _selectedBusId ?? 'Select Bus',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                        ),
+                      ),
+                      trailing: const Icon(Icons.arrow_drop_down),
+                      onTap: _handleBusTileTap,
+                    ),
+                    const Divider(),
                   ],
                 ),
               ),
