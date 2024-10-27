@@ -81,10 +81,10 @@ class HomePageState extends State<HomePage>
   String? _selectedTimeSlot;
   String? _selectedBusId;
 
-  Map<int, String> routeMapping = {
-    1: 'North Campus Mandi via South',
-    2: 'North Campus Mandi (direct)',
-    3: 'Mandi North Campus via South'
+  Map<String, int> routeMapping = {
+    'North Campus Mandi via South': 1,
+    'North Campus Mandi (direct)': 2,
+    'Mandi North Campus via South': 3
   };
   final List<String> _locations = ['North Campus', 'Mandi'];
 
@@ -152,17 +152,23 @@ class HomePageState extends State<HomePage>
 
     // Fetch buses from Firestore
     try {
-      QuerySnapshot querySnapshot = await FirebaseFirestore.instance
-          .collection('Buses')
-          .where('time_route.$selectedSlot', isEqualTo: route)
-          .get();
+      QuerySnapshot querySnapshot =
+          await FirebaseFirestore.instance.collection('Buses').get();
 
-      // Convert QuerySnapshot to List of Maps
       final List<Map<String, dynamic>> documents = querySnapshot.docs
           .map((doc) => doc.data() as Map<String, dynamic>)
           .toList();
-      print(selectedSlot);
-      return documents;
+
+      // Filter documents where the time_route map contains the selectedSlot key
+      final List<Map<String, dynamic>> filteredDocuments =
+          documents.where((doc) {
+        final timeRoute = doc['time_route']
+            as Map<String, dynamic>?; // Get the time_route map
+        return timeRoute != null &&
+            timeRoute.containsKey(selectedSlot) && // check if key exist 
+            timeRoute[selectedSlot] == route;  // check if value matches the route
+      }).toList();
+      return filteredDocuments;
     } catch (e) {
       _showErrorDialog(e.toString());
     }
@@ -366,6 +372,9 @@ class HomePageState extends State<HomePage>
                       ),
                       trailing: const Icon(Icons.arrow_drop_down),
                       onTap: () {
+                        setState(() {
+                          _selectedBusId = null;
+                        });
                         _showLocationDrawer('to');
                       },
                     ),
@@ -388,6 +397,9 @@ class HomePageState extends State<HomePage>
                             : 'Select a date',
                       ),
                       onTap: () {
+                        setState(() {
+                          _selectedBusId = null;
+                        });
                         _selectDate(context);
                       },
                     ),
