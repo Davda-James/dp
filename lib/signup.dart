@@ -76,8 +76,8 @@ class SignupState extends State<Signup> {
               width: double.infinity,
               decoration: const BoxDecoration(
                 gradient: LinearGradient(colors: [
-                  Color(0xff39C4D7),
-                  Color(0xff087DA2),
+                  Color(0xFF9096B8),
+                  Color(0xFF17203A),
                 ]),
               ),
               child: const Padding(
@@ -307,6 +307,9 @@ class SignupState extends State<Signup> {
                                   'createdAt': FieldValue.serverTimestamp(),
                                   'updatedAt': FieldValue.serverTimestamp(),
                                   'isAdmin': false, // Set this as needed
+                                  'gender': '',
+                                  'Phone_no': null,
+                                  'Name': '',
                                 });
                                 Navigator.push(
                                   context,
@@ -354,8 +357,8 @@ class SignupState extends State<Signup> {
                                     ? (_isHovered
                                         ? const LinearGradient(
                                             colors: [
-                                              Color(
-                                                  0xff8E142D), // Darker red on hover
+                                              Colors
+                                                  .grey, // Darker red on hover
                                               Color(
                                                   0xff1F0E27), // Darker purple on hover
                                             ],
@@ -401,7 +404,7 @@ class SignupState extends State<Signup> {
                               TextSpan(
                                 text: 'Login',
                                 style: const TextStyle(
-                                  color: Color(0xff39C4D7),
+                                  color: Colors.red,
                                   fontWeight: FontWeight.bold,
                                 ),
                                 recognizer: TapGestureRecognizer()

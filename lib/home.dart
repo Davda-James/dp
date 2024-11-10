@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:google_nav_bar/google_nav_bar.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'notification.dart';
 import 'profile.dart'; // Ensure you import the LineIcons package
 import 'sidebar.dart';
+import 'gps.dart';
+import 'help_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key, required String title});
@@ -17,7 +20,7 @@ class AvailableBusesList extends StatelessWidget {
   final VoidCallback onClose;
   final ValueChanged<String> onBusSelected;
 
-  AvailableBusesList({
+  const AvailableBusesList({super.key,
     required this.availableBuses,
     required this.onClose,
     required this.onBusSelected,
@@ -165,8 +168,9 @@ class HomePageState extends State<HomePage>
         final timeRoute = doc['time_route']
             as Map<String, dynamic>?; // Get the time_route map
         return timeRoute != null &&
-            timeRoute.containsKey(selectedSlot) && // check if key exist 
-            timeRoute[selectedSlot] == route;  // check if value matches the route
+            timeRoute.containsKey(selectedSlot) && // check if key exist
+            timeRoute[selectedSlot] ==
+                route; // check if value matches the route
       }).toList();
       return filteredDocuments;
     } catch (e) {
@@ -289,6 +293,11 @@ class HomePageState extends State<HomePage>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        title: Text('Home' , style: TextStyle(color: Color(0xFFF0F4FA)),),
+        backgroundColor: Color(0xFF17203A),
+        iconTheme: IconThemeData(
+          color: Color(0xFFF0F4FA) // Change color of the default sidebar icon
+        ),
         actions: [
           IconButton(
             icon: AnimatedBuilder(
@@ -297,23 +306,26 @@ class HomePageState extends State<HomePage>
                 return Transform.scale(
                   scale:
                       1.0 + _animation.value * 0.2, // Slight scaling on click
-                  child: const Icon(Icons.notifications),
+                  child: const Icon(Icons.notifications,color:Color(0xFFF0F4FA),),
                 );
               },
             ),
             onPressed: () {
-              _animateNotificationIcon(); // Start the animation
+              _animateNotificationIcon();
+              Navigator.of(context).push(
+                  MaterialPageRoute(builder: (context) => NotificationPage()));
+              // Start the animation
             },
           ),
         ],
       ),
-      drawer: SideBar(
+      drawer: CustomDrawer(
         onItemSelected: (index) {
           setState(() {
-            _selectedIndex =
-                index; // Update selected index based on sidebar selection
+            _selectedIndex = index as int; // Update selected index based on sidebar selection
           });
         },
+        selectedItem: '', // You might want to replace '' with the currently selected item if needed
       ),
       body: Container(
         decoration: const BoxDecoration(
@@ -323,7 +335,7 @@ class HomePageState extends State<HomePage>
           ]),
         ),
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 40),
+          padding: const EdgeInsets.symmetric(vertical: 50, horizontal: 45),
           child: ListView(
             children: [
               Container(
@@ -508,7 +520,7 @@ class HomePageState extends State<HomePage>
                       trailing: const Icon(Icons.arrow_drop_down),
                       onTap: _handleBusTileTap,
                     ),
-                    const Divider(),
+
                   ],
                 ),
               ),
@@ -519,26 +531,26 @@ class HomePageState extends State<HomePage>
 
       // Bottom Navigation Bar
       bottomNavigationBar: Container(
-        color: Colors.black,
+        color: Color(0xFF17203A),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 20),
           child: GNav(
-            backgroundColor: Colors.black,
+            backgroundColor: Color(0xFF17203A),
             color: Colors.white,
-            rippleColor: Colors.black,
+            rippleColor: Color(0xFF17203A),
             haptic: true,
             tabBorderRadius: 30,
-            tabActiveBorder: Border.all(color: Colors.grey, width: 1),
-            tabBorder: Border.all(color: Colors.black, width: 1),
+            tabActiveBorder: Border.all(color: Color(0xFFF0F4FA), width: 1),
+            tabBorder: Border.all(color: Color(0xFF17203A), width: 1),
             tabShadow: [
-              BoxShadow(color: Colors.black.withOpacity(0.5), blurRadius: 8)
+              BoxShadow(color: Color(0xFF17203A).withOpacity(0.5), blurRadius: 8)
             ],
             curve: Curves.fastOutSlowIn,
             duration: const Duration(milliseconds: 250),
             gap: 8,
             activeColor: Colors.white,
             iconSize: 30,
-            tabBackgroundColor: Colors.grey.shade500,
+            tabBackgroundColor: Color(0xFF4A5670 ),
             padding: const EdgeInsets.all(16),
             tabs: [
               GButton(
@@ -555,7 +567,8 @@ class HomePageState extends State<HomePage>
                 text: 'GPS',
                 onPressed: () {
                   setState(() {
-                    _selectedIndex = 1;
+                  Navigator.of(context).push(
+                      MaterialPageRoute(builder: (context) => MapScreen()));  
                   });
                 },
               ),
@@ -564,7 +577,8 @@ class HomePageState extends State<HomePage>
                 text: 'help',
                 onPressed: () {
                   setState(() {
-                    _selectedIndex = 2;
+                    Navigator.of(context).push(
+                        MaterialPageRoute(builder: (context) => HelplinePage()));
                   });
                 },
               ),

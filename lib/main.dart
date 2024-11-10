@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'welcome.dart'; // Assuming 'welcome.dart' is the file containing your Welcome widget
+import 'package:firebase_database/firebase_database.dart';
 
 //
 void main() async {
@@ -46,4 +47,4 @@ int hexColor(String c) {
 }
 
 
-// i have fluter project and I am bus booking for my college so how it looks like that there are some slots in which the buses are running like A,b,C and something upto E, and in each slot there can be some buses running means let say slot A has 2 buses running bus 1 and bus2 in this way so I want to create the firestore database for this and want to integrate in teh f
+// i have fluter project and I am bus booking for my college so how it looks like that there are some slots in which the buses are running like A,b,C and something upto E, and in each slot there can be some buses running means let say slot A has 2 buses running bus 1 and bus2 in this way so I want to create the firestore database for this and want to integrate in teh f 

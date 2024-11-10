@@ -1,51 +1,23 @@
 import 'package:flutter/material.dart';
-
-void main() {
-  runApp(ProfilePage());
-}
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ProfilePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      debugShowCheckedModeBanner: false, // Remove debug banner
+      debugShowCheckedModeBanner: false,
       home: Scaffold(
-        appBar: PreferredSize(
-          preferredSize: Size.fromHeight(150.0), // Custom app bar height
-          child: AppBar(
-            flexibleSpace: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Colors.blueAccent, Colors.lightBlueAccent],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(30),
-                  bottomRight: Radius.circular(30),
-                ),
-              ),
-            ),
-            elevation: 0,
-            backgroundColor: Colors.transparent,
-            leading: IconButton(
-              icon: Icon(Icons.arrow_back),
-              onPressed: (
-
-                  ) {
-                // Handle back button
-              },
-            ),
-            centerTitle: true,
-            title: Text(
-              'Profile',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
+        appBar: AppBar(
+          backgroundColor: Color(0xFF17203A),
+          elevation: 0,
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back, color: Colors.white),
+            onPressed: () {
+              Navigator.pop(context);
+            },
           ),
+          centerTitle: true,
         ),
         body: ProfileScreen(),
       ),
@@ -53,148 +25,251 @@ class ProfilePage extends StatelessWidget {
   }
 }
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
+  @override
+  _ProfileScreenState createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  TextEditingController nameController = TextEditingController();
+  TextEditingController designationController = TextEditingController();
+  TextEditingController emailController = TextEditingController();
+  TextEditingController phoneController = TextEditingController();
+  TextEditingController genderController = TextEditingController();
+
+  bool _isEditing = false;
+  String? _userId; // Variable to store the user's ID
+  String? _gender;
+  String? _userName;
+  @override
+  void initState() {
+    super.initState();
+    getCurrentUserId(); // Fetch user ID when the widget is initialized
+  }
+
+  Future<void> getCurrentUserId() async {
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      setState(() {
+        _userId = user.uid; // Store the user's UID
+      });
+      fetchProfileData(); // Fetch profile data after getting the UID
+    } else {
+      print("No user is currently logged in.");
+    }
+  }
+
+  Future<void> fetchProfileData() async {
+    if (_userId != null) {
+      DocumentSnapshot userDoc = await FirebaseFirestore.instance
+          .collection('Users') // Your collection name
+          .doc(_userId)
+          .get();
+      if (userDoc.exists) {
+        Map<String, dynamic>? data = userDoc.data() as Map<String, dynamic>?;
+        _userName = data?['Name'] ?? '';
+        nameController.text = _userName!;
+        // designationController.text = data?['designation'] ?? '';
+        emailController.text = data?['email'] ?? '';
+        phoneController.text = data?['Phone_no'] ?? '';
+        // genderController.text = data?['gender'] ?? '';
+        _gender = data?['gender'] ?? '';
+        genderController.text = _gender ?? '';
+        setState(() {});
+      }
+    }
+  }
+
+  // Function to save user profile data to Firestore
+  Future<void> saveProfileData() async {
+    if (_userId != null) {
+      await FirebaseFirestore.instance.collection('Users').doc(_userId).update({
+        'Name': nameController.text,
+        // 'designation': designationController.text,
+        'Phone_no': phoneController.text,
+        // 'gender': genderController.text,
+        'gender': _gender ?? genderController.text,
+      });
+      print("Profile updated successfully");
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: BoxDecoration(
-        image: DecorationImage(
-          image: AssetImage('assets/background.jpg'), // Use the uploaded background image here
-          fit: BoxFit.cover, // Make the background image cover the entire screen
-        ),
-      ),
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            // Profile Picture Section
-            Stack(
-              alignment: Alignment.center,
-              children: [
-                Container(
-                  width: 120,
-                  height: 120,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: LinearGradient(
-                      colors: [Colors.blueAccent, Colors.lightBlueAccent],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black26,
-                        blurRadius: 15,
-                        offset: Offset(0, 5),
-                      ),
-                    ],
-                  ),
-                ),
-                CircleAvatar(
-                  radius: 50,
+      color: Color(0xFFF0F4FA),
+      child: Center(
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircleAvatar(
+                radius: 60,
+                backgroundColor: Color(0xFF17203A),
+                child: CircleAvatar(
+                  radius: 55,
                   backgroundColor: Colors.grey[200],
                   child: ClipOval(
-                    child: Image.asset(
-                      'assets/avatar.png', // Replace with your asset
+                    child: Image.network(
+                      '', // Replace with an actual URL if available
                       fit: BoxFit.cover,
                       width: 100,
                       height: 100,
                     ),
                   ),
                 ),
-                Positioned(
-                  bottom: 0,
-                  right: 10,
-                  child: CircleAvatar(
-                    backgroundColor: Colors.white,
-                    radius: 16,
-                    child: Icon(Icons.camera_alt, size: 18),
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: 15),
-            Text(
-              'Prakhar',
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
               ),
-            ),
-            SizedBox(height: 30),
-
-            // Full name input with curved box and icon
-            buildCurvedTextField('Full name', 'Prakhar', Icons.person),
-
-            SizedBox(height: 20),
-
-            // Designation input with curved box and icon
-            buildCurvedTextField('Designation', 'Student', Icons.work),
-
-            SizedBox(height: 20),
-
-            // Email input with curved box and icon
-            buildCurvedTextField('E-mail', 'prakhar@gmail.com', Icons.email),
-
-            SizedBox(height: 20),
-
-            // Phone Number input with curved box and icon
-            buildCurvedTextField('Phone Number', '+91 898XXXXXXX', Icons.phone),
-
-            SizedBox(height: 20),
-
-            // Gender input with curved box and icon
-            buildCurvedTextField('Gender', 'Male', Icons.male),
-
-            SizedBox(height: 30),
-
-            // Save button with gradient and animation
-            Center(
-              child: GestureDetector(
-                onTap: () {
-                  // Handle save action
-                },
-                child: Container(
-                  width: 200,
-                  height: 50,
-                  decoration: BoxDecoration(
+              SizedBox(height: 15),
+              Text(
+                _userName ?? '',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF17203A),
+                ),
+              ),
+              SizedBox(height: 25),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    buildCurvedTextField(
+                      'Full Name',
+                      nameController,
+                      Icons.person,
+                      isEditable: _isEditing,
+                    ),
+                    buildDivider(),
+                    buildCurvedTextField(
+                        'Designation', designationController, Icons.work,
+                        isEditable: _isEditing),
+                    buildDivider(),
+                    buildCurvedTextField('Email', emailController, Icons.email,
+                        isEditable: false),
+                    buildDivider(),
+                    buildCurvedTextField(
+                        'Phone Number', phoneController, Icons.phone,
+                        isEditable: _isEditing),
+                    buildDivider(),
+                    _buildGenderField(),
+                    // buildCurvedTextField('Gender', genderController, Icons.male,
+                    //     isEditable: _isEditing),
+                  ],
+                ),
+              ),
+              SizedBox(height: 25),
+              ElevatedButton.icon(
+                icon: Icon(
+                  _isEditing ? Icons.save : Icons.edit,
+                  color: Colors.white,
+                  size: 24,
+                ),
+                label: Text(
+                  _isEditing ? 'Save Changes' : 'Edit Profile',
+                  style: TextStyle(fontSize: 18, color: Colors.white),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Color(0xFF17203A),
+                  padding: EdgeInsets.symmetric(horizontal: 25, vertical: 12),
+                  shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(30),
-                    gradient: LinearGradient(
-                      colors: [Colors.blueAccent, Colors.lightBlueAccent],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black26,
-                        blurRadius: 8,
-                        offset: Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Center(
-                    child: Text(
-                      'Save Changes',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
                   ),
                 ),
+                onPressed: () {
+                  setState(() {
+                    if (_isEditing) {
+                      saveProfileData();
+                      print(
+                          "Saved: ${nameController.text}, ${designationController.text}");
+                    }
+                    _isEditing = !_isEditing;
+                  });
+                },
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 
-  // Helper function to create a curved input field with icon
-  Widget buildCurvedTextField(String label, String hint, IconData icon) {
+  Widget _buildGenderField() {
+    // If gender is already fetched and not empty
+    if (_gender != null && _gender!.isNotEmpty) {
+      // If not in editing mode, show the gender in a non-editable curved text box
+      if (!_isEditing) {
+        genderController.text = _gender!; // Set the gender to display
+        return buildCurvedTextField(
+          'Gender',
+          genderController,
+          Icons.male, // You can change this to any icon you'd like
+          isEditable: false, // Make it non-editable
+        );
+      }
+    }
+
+    // If gender is empty or null, show the gender selection options (Male/Female) only in editing mode
+    if (_isEditing) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+        child: Column(
+          children: [
+            Text(
+              'Gender',
+              style: TextStyle(fontSize: 16, color: Color(0xFF17203A)),
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _buildGenderOption('Male'),
+                SizedBox(width: 20),
+                _buildGenderOption('Female'),
+              ],
+            ),
+          ],
+        ),
+      );
+    }
+
+    // If not editing and gender is not set, hide the gender field
+    return Container();
+  }
+
+  Widget _buildGenderOption(String gender) {
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _gender = gender;
+        });
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          color: _gender == gender ? Color(0xFF17203A) : Colors.white,
+          borderRadius: BorderRadius.circular(10),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black12,
+              blurRadius: 6,
+              offset: Offset(0, 3),
+            ),
+          ],
+        ),
+        padding: EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+        child: Text(
+          gender,
+          style: TextStyle(
+            color: _gender == gender ? Colors.white : Color(0xFF17203A),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget buildCurvedTextField(
+      String label, TextEditingController controller, IconData icon,
+      {bool isEditable = true, Color iconColor = Colors.blueAccent}) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -209,13 +284,26 @@ class ProfileScreen extends StatelessWidget {
       ),
       padding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: TextField(
+        controller: controller,
+        enabled: isEditable,
         decoration: InputDecoration(
           labelText: label,
-          hintText: hint,
-          icon: Icon(icon, color: Colors.blueAccent),
+          icon: Icon(icon, color: iconColor),
           border: InputBorder.none,
         ),
+        style: TextStyle(color: isEditable ? Color(0xFF17203A) : Colors.grey),
       ),
     );
   }
+
+  //  for gender
+
+  Widget buildDivider() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Divider(color: Color(0xFF17203A), thickness: 1.2),
+    );
+  }
 }
+
+  //  for gender

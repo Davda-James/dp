@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart'; // Import Firebase Auth
+import 'package:firebase_auth/firebase_auth.dart';
 import 'signup.dart';
-import 'home.dart'; // Import the home page here
+import 'home.dart';
 
 class Login extends StatefulWidget {
   const Login({super.key});
@@ -33,36 +33,36 @@ class LoginScreenState extends State<Login> {
   }
 
   Future<void> _login() async {
-    // if (_isEmailValid && _isPasswordEntered) {
-    //   try {
-    //     // Attempt to sign in the user with email and password
-    //     UserCredential userCredential =
-    //         await FirebaseAuth.instance.signInWithEmailAndPassword(
-    //       email: _emailController.text.trim(),
-    //       password: _passwordController.text.trim(),
-    //     );
+    if (_isEmailValid && _isPasswordEntered) {
+      try {
+        // Attempt to sign in the user with email and password
+        UserCredential userCredential =
+            await FirebaseAuth.instance.signInWithEmailAndPassword(
+          email: _emailController.text.trim(),
+          password: _passwordController.text.trim(),
+        );
 
-    //     // Navigate to home page on successful login
-    //     Navigator.pushReplacement(
-    //       context,
-    //       MaterialPageRoute(
-    //         builder: (context) => const HomePage(
-    //           title: 'Home',
-    //         ),
-    //       ),
-    //     );
-    //   } on FirebaseAuthException catch (e) {
-    //     _showErrorDialog(e.code);
-    //   }
-    // }
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const HomePage(
-          title: 'Home',
-        ),
-      ),
-    );
+        // Navigate to home page on successful login
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const HomePage(
+              title: 'Home',
+            ),
+          ),
+        );
+      } on FirebaseAuthException catch (e) {
+        _showErrorDialog(e.code);
+      }
+    }
+    // Navigator.pushReplacement(
+    //   context,
+    //   MaterialPageRoute(
+    //     builder: (context) => const HomePage(
+    //       title: 'Home',
+    //     ),
+    //   ),
+    // );
   }
 
   void _showErrorDialog(String message) {
@@ -96,8 +96,8 @@ class LoginScreenState extends State<Login> {
             width: double.infinity,
             decoration: const BoxDecoration(
               gradient: LinearGradient(colors: [
-                Color(0xff39C4D7),
-                Color(0xff087DA2),
+                Color(0xFF9096B8),
+                Color(0xFF17203A),
               ]),
             ),
             child: const Padding(
@@ -253,7 +253,7 @@ class LoginScreenState extends State<Login> {
                                             ? LinearGradient(
                                                 colors: _isHovered
                                                     ? [
-                                                        const Color(0xff8E142D),
+                                                        const Color(0xff000000),
                                                         const Color(0xff1F0E27),
                                                       ]
                                                     : [
@@ -322,7 +322,7 @@ class LoginScreenState extends State<Login> {
                                     style: TextStyle(
                                         fontWeight: FontWeight.bold,
                                         fontSize: 17,
-                                        color: Colors.black),
+                                        color: Colors.red),
                                   ),
                                 ),
                               ],

@@ -46,6 +46,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '994177180374',
     projectId: 'dpapp-70c5f',
     authDomain: 'dpapp-70c5f.firebaseapp.com',
+    databaseURL: 'https://dpapp-70c5f-default-rtdb.firebaseio.com',
     storageBucket: 'dpapp-70c5f.appspot.com',
     measurementId: 'G-NVZJQRXQ55',
   );
