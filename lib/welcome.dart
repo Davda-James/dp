@@ -9,166 +9,229 @@ class Welcome extends StatefulWidget {
 }
 
 class WelcomeState extends State<Welcome> {
+  double _opacity = 0.0;
+  double _logoPosition = 50.0;
+
+  @override
+  void initState() {
+    super.initState();
+    // Trigger animations after a small delay
+    Future.delayed(const Duration(milliseconds: 500), () {
+      setState(() {
+        _opacity = 1.0;
+        _logoPosition = 0.0;
+      });
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Get the screen size
-    final screenHeight = MediaQuery.of(context).size.height;
-    final screenWidth = MediaQuery.of(context).size.width;
-
     return Scaffold(
-      body: SingleChildScrollView(
-        // Allow scrolling for small screens
-        child: Stack(
-          children: [
-            // Background Gradient
-            Container(
-              height: screenHeight, // Use full height
-              width: double.infinity,
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    Color(0xFF9096B8),
-                    Color(0xFF17203A),
-                  ],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                ),
-              ),
-              child: Padding(
-                padding: EdgeInsets.only(top: screenHeight * 0.1, left: 22),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // IIT Logo
-                    Center(
-                      child: Image.asset(
-                        'assets/images/iitLogo.png', // Replace with your image path
-                        width: screenWidth * 0.4, // Responsive width
-                        height: screenHeight * 0.2, // Responsive height
-                      ),
-                    ),
-                    SizedBox(
-                        height: screenHeight *
-                            0.04), // Space between image and text
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final screenWidth =
+              (constraints.maxWidth < 500 ? constraints.maxWidth : 400)
+                  .toDouble();
+          final screenHeight = constraints.maxHeight;
 
-                    // Welcome Text
-                    Center(
-                      child: Text(
-                        'Greetings, Traveler!',
-                        style: TextStyle(
-                          fontSize: screenWidth * 0.08, // Responsive font size
-                          fontWeight: FontWeight.bold,
-                          color: const Color(
-                              0xFFF0F4FA), // White text for contrast
-                        ),
+          return Center(
+            child: Container(
+              width: screenWidth,
+              child: Stack(
+                children: [
+                  // Background Gradient
+                  Container(
+                    height: screenHeight,
+                    width: double.infinity,
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          Color(0xFF9096B8),
+                          Color(0xFF17203A),
+                        ],
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
                       ),
                     ),
-                  ],
-                ),
-              ),
-            ),
-            // Non-scrollable content with rounded top container
-            Padding(
-              padding:
-                  EdgeInsets.only(top: screenHeight * 0.4), // Dynamic padding
-              child: Container(
-                decoration: const BoxDecoration(
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(40),
-                    topRight: Radius.circular(40),
+                    child: Padding(
+                      padding:
+                          EdgeInsets.only(top: screenHeight * 0.1, left: 22),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Logo Fade In and Slide Up Animation
+                          AnimatedOpacity(
+                            opacity: 1.0,
+                            duration: Duration(seconds: 1),
+                            child: Align(
+                              alignment: Alignment.center,
+                              child: Image.asset(
+                                'assets/images/iitLogo.png',
+                                width: screenWidth * 0.5, // Reduced size
+                                height: screenHeight * 0.15, // Reduced size
+                              ),
+                            ),
+                          ),
+                          SizedBox(height: screenHeight * 0.03),
+                          // Welcome Text Fade In
+                          AnimatedOpacity(
+                            opacity: 1.0,
+                            duration: Duration(seconds: 1),
+                            child: Center(
+                              child: Text(
+                                'Greetings, Traveler!',
+                                style: TextStyle(
+                                  fontSize: screenWidth * 0.07,
+                                  fontWeight: FontWeight.bold,
+                                  color: const Color(0xFFF0F4FA),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
-                  color: Colors.white,
-                ),
-                child: Column(
-                  children: [
-                    SizedBox(
-                        height: screenHeight * 0.03), // Space above the title
-                    // Title Text
-                    Text(
-                      'Welcome to Seamless Travel',
-                      style: TextStyle(
-                        fontSize: screenWidth * 0.06, // Responsive font size
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    SizedBox(
-                        height: screenHeight *
-                            0.02), // Space between the text and the image
-
-                    // Bus Image below introduction text
-                    Image.asset(
-                      "assets/images/buslogo.jpg", // Replace with your image path
-                      width: screenWidth * 0.8, // Make image responsive
-                      height: screenHeight * 0.3, // Responsive height
-                      fit: BoxFit.cover, // Adjust to maintain aspect ratio
-                    ),
-                    SizedBox(
-                        height: screenHeight * 0.05), // Space before button
-
-                    // Introductory Text before button
-                    Text(
-                      'Join us and explore the convenience of our bus service! Tap the Get Started button to begin.',
-                      style: TextStyle(
-                        fontSize: screenWidth * 0.04, // Responsive font size
-                        color: Colors.black54,
-                        fontWeight: FontWeight.normal,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    SizedBox(
-                        height: screenHeight *
-                            0.03), // Space between text and button
-
-                    // 'Get Started' Button
-                    ElevatedButton(
-                      onPressed: () {
-                        // Navigate to Signup page
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) =>
-                                  const Signup()), // Navigate to Signup page
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: screenWidth * 0.2,
-                          vertical: screenHeight * 0.025,
+                  // Content with rounded top container
+                  Padding(
+                    padding: EdgeInsets.only(top: screenHeight * 0.37),
+                    child: Container(
+                      height: screenHeight *
+                          0.63, // Fixed height to fit in the screen
+                      decoration: const BoxDecoration(
+                        borderRadius: BorderRadius.only(
+                          topLeft: Radius.circular(40),
+                          topRight: Radius.circular(40),
                         ),
-                        backgroundColor:
-                            Colors.black, // Button background color
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
-                        ),
+                        color: Colors.white,
                       ),
-                      child: Text(
-                        'Get Started',
-                        style: TextStyle(
-                          fontSize: screenWidth * 0.045, // Responsive font size
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
+                      child: SingleChildScrollView(
+                        child: Column(
+                          children: [
+                            SizedBox(height: screenHeight * 0.02),
+                            // Title Text Fade In
+                            AnimatedOpacity(
+                              opacity: _opacity,
+                              duration: const Duration(seconds: 1),
+                              child: Text(
+                                'Welcome to Seamless Travel',
+                                style: TextStyle(
+                                  fontSize: screenWidth * 0.055,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black87,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                            SizedBox(height: screenHeight * 0.015),
+                            // Bus Image Fade In and Slide Up
+                            SizedBox(
+                              height: screenHeight * 0.28,
+                              child: Stack(
+                                children: [
+                                  AnimatedPositioned(
+                                    duration: const Duration(seconds: 1),
+                                    curve: Curves.easeInOut,
+                                    top: _logoPosition,
+                                    left: screenWidth * 0.15,
+                                    child: AnimatedOpacity(
+                                      opacity: _opacity,
+                                      duration: const Duration(seconds: 1),
+                                      child: Image.asset(
+                                        "assets/images/buslogo.jpg",
+                                        width: screenWidth * 0.7,
+                                        height: screenHeight * 0.22,
+                                        fit: BoxFit.cover,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            // Introductory Text and Button
+                            SizedBox(height: screenHeight * 0.04),
+                            Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 20),
+                              child: AnimatedOpacity(
+                                opacity: _opacity,
+                                duration: const Duration(seconds: 1),
+                                child: Text(
+                                  'Join us and explore the convenience of our bus service! Tap the Get Started button to begin.',
+                                  style: TextStyle(
+                                    fontSize: screenWidth * 0.04,
+                                    color: Colors.black54,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            ),
+                            SizedBox(height: screenHeight * 0.05),
+                            // 'Get Started' Button
+                            AnimatedOpacity(
+                              opacity: _opacity,
+                              duration: const Duration(seconds: 1),
+                              child: ElevatedButton(
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    PageRouteBuilder(
+                                      pageBuilder: (context, animation,
+                                              secondaryAnimation) =>
+                                          const Signup(),
+                                      transitionsBuilder: (context, animation,
+                                          secondaryAnimation, child) {
+                                        final fadeAnimation =
+                                            Tween(begin: 0.0, end: 1.0)
+                                                .animate(animation);
+                                        final slideAnimation = Tween(
+                                          begin: const Offset(1.0, 0.0),
+                                          end: Offset.zero,
+                                        ).animate(animation);
+
+                                        return SlideTransition(
+                                          position: slideAnimation,
+                                          child: FadeTransition(
+                                            opacity: fadeAnimation,
+                                            child: child,
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  );
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: screenWidth * 0.18,
+                                    vertical: screenHeight * 0.025,
+                                  ),
+                                  backgroundColor: Colors.black,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(30),
+                                  ),
+                                ),
+                                child: Text(
+                                  'Get Started',
+                                  style: TextStyle(
+                                    fontSize: screenWidth * 0.04,
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            SizedBox(height: screenHeight * 0.02),
+                          ],
                         ),
                       ),
                     ),
-                    SizedBox(
-                        height: screenHeight *
-                            0.05), // Padding at the bottom of the button
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
-}
-
-int hexColor(String c) {
-  String sColor = '0xff$c';
-  sColor = sColor.replaceAll('#', '');
-  int dColor = int.parse(sColor);
-  return dColor;
 }

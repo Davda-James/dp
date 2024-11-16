@@ -1,9 +1,13 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'profile.dart'; // Import your Profile screen
 import 'notification.dart'; // Import your Notification screen
 import 'home.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'gps.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'help_page.dart'; // Import your Home screen
+import 'tickets.dart'; // Import your UserTicketsPage screen
 
 class CustomDrawer extends StatelessWidget {
   final String? selectedItem;
@@ -17,21 +21,61 @@ class CustomDrawer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final userId = FirebaseAuth.instance.currentUser?.uid;
     return Drawer(
       child: Container(
         color: const Color(0xFF17203A),
         child: ListView(
-          padding: EdgeInsets.zero,
+          padding: EdgeInsets.symmetric(horizontal: 20),
           children: [
-            UserAccountsDrawerHeader(
-              decoration: const BoxDecoration(color: Color(0xFF17203A)),
-              accountName: const Text('Priyanshu',
-                  style: TextStyle(color: Colors.white)),
-              accountEmail: null,
-              currentAccountPicture: const CircleAvatar(
-                backgroundImage: AssetImage('assets/images/profile1.gif'),
-                backgroundColor: Colors.white,
-              ),
+            FutureBuilder<DocumentSnapshot>(
+              future: FirebaseFirestore.instance
+                  .collection('Users')
+                  .doc(userId) // Use current user's ID here
+                  .get(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return UserAccountsDrawerHeader(
+                    decoration: const BoxDecoration(color: Color(0xFF17203A)),
+                    accountName: Text(
+                      'Loading...',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                    accountEmail: null,
+                    currentAccountPicture: CircleAvatar(
+                      backgroundImage: AssetImage('assets/images/boy.png'),
+                      backgroundColor: Colors.white,
+                    ),
+                  );
+                }
+
+                if (snapshot.hasError ||
+                    !snapshot.hasData ||
+                    snapshot.data == null) {
+                  return UserAccountsDrawerHeader(
+                    decoration: const BoxDecoration(color: Color(0xFF17203A)),
+                    accountName: null,
+                    accountEmail: null,
+                    currentAccountPicture: CircleAvatar(
+                      backgroundImage: AssetImage('assets/images/boy.png'),
+                      backgroundColor: Colors.white,
+                    ),
+                  );
+                }
+
+                final fullName = snapshot.data!.get('Name') ?? '';
+                return UserAccountsDrawerHeader(
+                  decoration: const BoxDecoration(color: Color(0xFF17203A)),
+                  accountName: fullName.isNotEmpty
+                      ? Text(fullName, style: TextStyle(color: Colors.white))
+                      : null,
+                  accountEmail: null,
+                  currentAccountPicture: CircleAvatar(
+                    backgroundImage: AssetImage('assets/images/boy.png'),
+                    backgroundColor: Colors.white,
+                  ),
+                );
+              },
             ),
             _buildDrawerItem(
                 Icons.edit_calendar_outlined, 'Ticket Booking', context),
@@ -54,43 +98,17 @@ class CustomDrawer extends StatelessWidget {
       child: InkWell(
         onTap: () {
           if (title == 'My Profile') {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (context) =>
-                      ProfilePage()), // Navigate to the Profile screen
-            );
+            _navigateToPage(context, ProfilePage());
           } else if (title == 'Notifications') {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (context) =>
-                      NotificationPage()), // Navigate to the Notification screen
-            );
+            _navigateToPage(context, NotificationPage());
           } else if (title == 'Ticket Booking') {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (context) => HomePage(
-                        title: 'Home',
-                      )), // Navigate to the Home screen
-            );
-          } else if (title == 'GPS') {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (context) =>
-                      MapScreen()), // Navigate to the Notification screen
-            );
+            _navigateToPage(context, HomePage(title: 'Home'));
           } else if (title == 'Help') {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (context) =>
-                      HelplinePage()), // Navigate to the Notification screen
-            );
-          } else {
-            print('$title single tap');
+            _navigateToPage(context, HelplineScreen());
+          } else if (title == 'GPS') {
+            _navigateToPage(context, MapScreen());
+          } else if (title == 'Verify Ticket') {
+            _navigateToPage(context, UserTicketsPage());
           }
         },
         onDoubleTap: () {
@@ -113,6 +131,27 @@ class CustomDrawer extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  // A helper function to handle page navigation with smooth transition
+  void _navigateToPage(BuildContext context, Widget page) {
+    Navigator.push(
+      context,
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) => page,
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          const begin = Offset(1.0, 0.0);
+          const end = Offset.zero;
+          const curve = Curves.easeInOut;
+
+          var tween =
+              Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+          var offsetAnimation = animation.drive(tween);
+
+          return SlideTransition(position: offsetAnimation, child: child);
+        },
       ),
     );
   }

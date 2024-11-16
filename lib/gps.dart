@@ -43,6 +43,7 @@ class _MapScreenState extends State<MapScreen>
   late Animation<LatLng> _animation;
   List<Map<String, dynamic>> checkpoints = [];
   double speed = 0.0;
+  Set<Polyline> _polylines = {};
   @override
   void initState() {
     super.initState();
@@ -215,7 +216,7 @@ class _MapScreenState extends State<MapScreen>
       newLocation.longitude,
     );
 
-    if (distance < 1.0) {
+    if (distance < 0.01) {
       // Directly update the marker if movement is too slight for animation
       setState(() {
         _busLocation = newLocation;
