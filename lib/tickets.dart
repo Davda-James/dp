@@ -47,6 +47,8 @@ class UserTicketsPageContent extends StatefulWidget {
 
 class _UserTicketsPageContentState extends State<UserTicketsPageContent> {
   late Future<List<Map<String, dynamic>>> _ticketsFuture;
+  List<Map<String, dynamic>> _tickets = [];
+
   int? _expandedIndex;
   @override
   void initState() {
@@ -75,23 +77,64 @@ class _UserTicketsPageContentState extends State<UserTicketsPageContent> {
 
   Future<void> cancelTicket(Map<String, dynamic> ticket) async {
     try {
-      final docRef = FirebaseFirestore.instance
-          .collection('UserBookings')
-          .doc(widget.userId);
+      // Reference to the Bookings collection
+      final bookingsCollectionRef =
+          FirebaseFirestore.instance.collection('Bookings');
 
-      DocumentSnapshot userDoc = await docRef.get();
+      // Query to find the document with the matching busId, route, date, and timing
+      final querySnapshot = await bookingsCollectionRef
+          .where('busId', isEqualTo: ticket['busId'])
+          .where('route', isEqualTo: ticket['route'])
+          .where('date', isEqualTo: ticket['date'])
+          .where('timing', isEqualTo: ticket['timing'])
+          .get();
 
-      if (userDoc.exists && userDoc.data() != null) {
-        List<dynamic> bookedSeats = List.from(userDoc['bookedSeats']);
-        bookedSeats.removeWhere((seat) =>
-            seat['busId'] == ticket['busId'] &&
-            seat['seatNo'] == ticket['seatNo'] &&
-            seat['route'] == ticket['route'] &&
-            seat['date'] == ticket['date'] &&
-            seat['timing'] == ticket['timing']);
+      // If we find the matching document, proceed
+      if (querySnapshot.docs.isNotEmpty) {
+        // Loop through each document (there might be multiple matching docs)
+        for (var doc in querySnapshot.docs) {
+          // Get the bookedSeats map for the current document
+          Map<String, dynamic> bookedSeats =
+              Map<String, dynamic>.from(doc['bookedSeats']);
 
-        await docRef.update({'bookedSeats': bookedSeats});
-        _showSuccessDialog(context);
+          // Check if the seatNo exists in the bookedSeats map for the current user
+          if (bookedSeats.containsKey(ticket['seatNo'].toString())) {
+            // If the seatNo matches, remove the seatNo key
+            bookedSeats.remove(ticket['seatNo'].toString());
+
+            // Update the bookedSeats map in the current document
+            await doc.reference.update({'bookedSeats': bookedSeats});
+
+            // Now remove the ticket from the user's bookedSeats in UserBookings
+            final userDocRef = FirebaseFirestore.instance
+                .collection('UserBookings')
+                .doc(widget.userId);
+            DocumentSnapshot userDoc = await userDocRef.get();
+
+            if (userDoc.exists && userDoc.data() != null) {
+              List<dynamic> bookedSeatsList = List.from(userDoc['bookedSeats']);
+              bookedSeatsList.removeWhere((seat) =>
+                  seat['busId'] == ticket['busId'] &&
+                  seat['seatNo'] == ticket['seatNo'] &&
+                  seat['route'] == ticket['route'] &&
+                  seat['date'] == ticket['date'] &&
+                  seat['timing'] == ticket['timing']);
+
+              // Update the user's bookedSeats list
+              await userDocRef.update({'bookedSeats': bookedSeatsList});
+
+              // Remove the canceled ticket from the list and show success dialog
+              setState(() {
+                _tickets.remove(ticket);
+              });
+
+              _showSuccessDialog(context);
+              return;
+            }
+          }
+        }
+      } else {
+        _showErrorDialog(context, "No matching ticket found");
       }
     } catch (e) {
       _showErrorDialog(context, "Error cancelling ticket");
@@ -120,7 +163,6 @@ class _UserTicketsPageContentState extends State<UserTicketsPageContent> {
     ).show();
   }
 
-  // showing cancel bottom sheet
   void _showCancelBottomSheet(
       BuildContext context, Map<String, dynamic> ticket) {
     showModalBottomSheet(
@@ -165,105 +207,69 @@ class _UserTicketsPageContentState extends State<UserTicketsPageContent> {
     );
   }
 
-  // Building ticket card with expandable animation
   Widget _buildTicketCard(Map<String, dynamic> ticket, int index) {
-    final isExpanded = _expandedIndex == index;
     final qrCodeBase64 = ticket['qrCodeBase64'];
     final qrBytes = qrCodeBase64 != null ? base64Decode(qrCodeBase64) : null;
 
     return GestureDetector(
       onTap: () {
-        setState(() {
-          _expandedIndex = isExpanded ? null : index; // Toggle expanded state
-        });
+        _showCancelBottomSheet(context, ticket);
       },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
+      child: Card(
         margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 15),
-        padding: const EdgeInsets.all(15.0),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(15),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black12,
-              blurRadius: 5,
-              offset: Offset(0, 3),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Ticket details
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Bus ID: ${ticket['busId']}',
-                        style: GoogleFonts.roboto(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+        elevation: 5,
+        child: Padding(
+          padding: const EdgeInsets.all(15.0),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Left side: Ticket Details
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Bus ID: ${ticket['busId']}',
+                      style: GoogleFonts.roboto(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
                       ),
-                      const SizedBox(height: 3),
-                      Text(
-                        'Seat No: ${ticket['seatNo']}',
-                        style: GoogleFonts.roboto(fontSize: 13),
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        'Route: ${ticket['route']}',
-                        style: GoogleFonts.roboto(fontSize: 13),
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        'Date: ${ticket['date']}',
-                        style: GoogleFonts.roboto(fontSize: 13),
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        'Timing: ${ticket['timing']}',
-                        style: GoogleFonts.roboto(fontSize: 13),
-                      ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      'Seat No: ${ticket['seatNo']}',
+                      style: GoogleFonts.roboto(fontSize: 13),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      'Route: ${ticket['route']}',
+                      style: GoogleFonts.roboto(fontSize: 13),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      'Date: ${ticket['date']}',
+                      style: GoogleFonts.roboto(fontSize: 13),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      'Timing: ${ticket['timing']}',
+                      style: GoogleFonts.roboto(fontSize: 13),
+                    ),
+                  ],
                 ),
-                // QR Code (if available)
-                if (qrBytes != null)
-                  Image.memory(
-                    qrBytes,
-                    height: 100,
-                    width: 100,
-                    fit: BoxFit.contain,
-                  )
-                else
-                  const Text('QR Code not available'),
-              ],
-            ),
-            // Expandable cancel button
-            if (isExpanded) ...[
-              const SizedBox(height: 10),
-              ElevatedButton.icon(
-                icon: Icon(Icons.cancel),
-                label: Text('Cancel Ticket'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.redAccent,
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 12,
-                    horizontal: 24,
-                  ),
-                ),
-                onPressed: () {
-                  _showCancelBottomSheet(context, ticket);
-                },
               ),
+              // Right side: QR Code
+              qrBytes != null
+                  ? Image.memory(
+                      qrBytes,
+                      height: 100,
+                      width: 100,
+                      fit: BoxFit.contain,
+                    )
+                  : const Text('QR Code not available'),
             ],
-          ],
+          ),
         ),
       ),
     );
@@ -273,18 +279,18 @@ class _UserTicketsPageContentState extends State<UserTicketsPageContent> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: FutureBuilder<List<Map<String, dynamic>>>(
-        future: fetchUserTickets(),
+        future: _ticketsFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           } else if (snapshot.hasError) {
             return const Center(child: Text('Error loading tickets.'));
           } else if (snapshot.hasData && snapshot.data!.isNotEmpty) {
-            final tickets = snapshot.data!;
+            _tickets = snapshot.data!;
             return ListView.builder(
-              itemCount: tickets.length,
+              itemCount: _tickets.length,
               itemBuilder: (context, index) {
-                return _buildTicketCard(tickets[index], index);
+                return _buildTicketCard(_tickets[index], index);
               },
             );
           } else {
