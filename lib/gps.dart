@@ -7,6 +7,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:awesome_dialog/awesome_dialog.dart';
 // import 'package:flutter_dotenv/flutter_dotenv.dart';
 // import 'dart:convert';
 // import 'package:http/http.dart' as http;
@@ -33,8 +34,10 @@ class MapScreen extends StatefulWidget {
 class _MapScreenState extends State<MapScreen>
     with SingleTickerProviderStateMixin {
   late GoogleMapController mapController;
-  final DatabaseReference _locationRef =
-      FirebaseDatabase.instance.ref('busLocations/busA');
+  // final DatabaseReference _locationRef =
+  //     FirebaseDatabase.instance.ref('busLocations/busA');
+  final DatabaseReference _busLocationsRef =
+      FirebaseDatabase.instance.ref('busLocations');
   LatLng _busLocation =
       const LatLng(28.9905081, 76.9873477); // Default location
   Set<Marker> _markers = {}; // Set to hold markers
@@ -43,58 +46,52 @@ class _MapScreenState extends State<MapScreen>
   late Animation<LatLng> _animation;
   List<Map<String, dynamic>> checkpoints = [];
   double speed = 0.0;
-  Set<Polyline> _polylines = {};
+  List<String> availableBuses = []; // List of bus IDs
+  String? selectedBus; // Currently selected bus ID
+  bool isLoadingBuses = true;
+  // Set<Polyline> _polylines = {};
   @override
   void initState() {
     super.initState();
     _initializeFirebase();
     _loadCustomMarker();
     _initializeAnimation();
-    _subscribeToLocationUpdates();
+    // _subscribeToLocationUpdates();
     _fetchCheckpoints();
+    _fetchAvailableBuses();
   }
 
-  // Future<Map<String, dynamic>?> _fetchRouteData(
-  //     LatLng origin, LatLng destination) async {
-  //   // Construct the URL for the Directions API request
-  //   final url = Uri.parse(
-  //     'https://maps.googleapis.com/maps/api/distancematrix/json'
-  //     '?origins=${origin.latitude},${origin.longitude}'
-  //     '&destinations=${destination.latitude},${destination.longitude}'
-  //     '&departure_time=now'
-  //     '&traffic_model=best_guess'
-  //     '&key=$apiKey',
-  //   );
+  Future<void> _fetchAvailableBuses() async {
+    try {
+      final snapshot = await _busLocationsRef.get();
+      if (snapshot.exists) {
+        final Map<dynamic, dynamic>? data =
+            snapshot.value as Map<dynamic, dynamic>?;
+        if (data != null) {
+          setState(() {
+            availableBuses = data.keys.cast<String>().toList();
+          });
+        }
+      }
+    } catch (e) {
+      _showErrorDialog(context, 'Error fetching available buses: $e');
+    } finally {
+      setState(() {
+        isLoadingBuses = false;
+      });
+    }
+  }
 
-  //   try {
-  //     // Send the HTTP GET request
-  //     final response = await http.get(url);
-
-  //     // Check if the response is successful
-  //     if (response.statusCode == 200) {
-  //       final data = json.decode(response.body);
-
-  //       if (data['status'] == 'OK') {
-  //         final element = data['rows'][0]['elements'][0];
-
-  //         final duration = element['duration_in_traffic']
-  //             ['value']; // Duration considering traffic in seconds
-
-  //         return {
-  //           'duration': duration,
-  //         };
-  //       } else {
-  //         print('Error in Distance Matrix API response: ${data['status']}');
-  //       }
-  //     } else {
-  //       print('Error fetching route data: ${response.statusCode}');
-  //     }
-  //   } catch (e) {
-  //     print('Error fetching route data: $e');
-  //   }
-
-  //   return null;
-  // }
+  void _showErrorDialog(BuildContext context, String error) {
+    AwesomeDialog(
+      context: context,
+      dialogType: DialogType.error,
+      animType: AnimType.scale,
+      title: 'Error',
+      desc: 'Failed to cancel the ticket.\n$error',
+      btnOkOnPress: () {},
+    ).show();
+  }
 
   Future<void> _fetchCheckpoints() async {
     FirebaseFirestore firestore = FirebaseFirestore.instance;
@@ -178,7 +175,7 @@ class _MapScreenState extends State<MapScreen>
       await Firebase.initializeApp();
     } catch (e) {
       // Handle Firebase initialization error
-      print('Error initializing Firebase: $e');
+      _showErrorDialog(context, 'Error initializing Firebase: $e');
     }
   }
 
@@ -190,8 +187,8 @@ class _MapScreenState extends State<MapScreen>
     );
   }
 
-  void _subscribeToLocationUpdates() {
-    _locationRef.onValue.listen((event) {
+  void _subscribeToLocationUpdates(String busId) {
+    _busLocationsRef.child(busId).onValue.listen((event) {
       final data = event.snapshot.value as Map<dynamic, dynamic>?;
       if (data != null) {
         print(data);
@@ -278,13 +275,50 @@ class _MapScreenState extends State<MapScreen>
         title: const Text('GPS Tracking Map'),
         elevation: 2,
       ),
-      body: GoogleMap(
-        onMapCreated: _onMapCreated,
-        initialCameraPosition: CameraPosition(
-          target: _busLocation,
-          zoom: 14.0,
-        ),
-        markers: _markers, // Pass the markers set to the map
+      body: Column(
+        children: [
+          // Dropdown to select bus
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: isLoadingBuses
+                ? Center(child: CircularProgressIndicator())
+                : DropdownButtonFormField<String>(
+                    value: selectedBus,
+                    hint: const Text('Select a Bus'),
+                    items: availableBuses.map((bus) {
+                      return DropdownMenuItem(
+                        value: bus,
+                        child: Text(bus),
+                      );
+                    }).toList(),
+                    onChanged: (String? newBusId) {
+                      setState(() {
+                        selectedBus = newBusId;
+                      });
+                      if (newBusId != null) {
+                        _subscribeToLocationUpdates(newBusId);
+                      }
+                    },
+                    decoration: InputDecoration(
+                      border: OutlineInputBorder(),
+                      contentPadding: const EdgeInsets.symmetric(
+                        vertical: 10.0,
+                        horizontal: 15.0,
+                      ),
+                    ),
+                  ),
+          ),
+          Expanded(
+            child: GoogleMap(
+              onMapCreated: _onMapCreated,
+              initialCameraPosition: CameraPosition(
+                target: _busLocation,
+                zoom: 14.0,
+              ),
+              markers: _markers, // Pass the markers set to the map
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -556,3 +590,45 @@ class _MapScreenState extends State<MapScreen>
 //     );
 //   }
 // }
+
+  // Future<Map<String, dynamic>?> _fetchRouteData(
+  //     LatLng origin, LatLng destination) async {
+  //   // Construct the URL for the Directions API request
+  //   final url = Uri.parse(
+  //     'https://maps.googleapis.com/maps/api/distancematrix/json'
+  //     '?origins=${origin.latitude},${origin.longitude}'
+  //     '&destinations=${destination.latitude},${destination.longitude}'
+  //     '&departure_time=now'
+  //     '&traffic_model=best_guess'
+  //     '&key=$apiKey',
+  //   );
+
+  //   try {
+  //     // Send the HTTP GET request
+  //     final response = await http.get(url);
+
+  //     // Check if the response is successful
+  //     if (response.statusCode == 200) {
+  //       final data = json.decode(response.body);
+
+  //       if (data['status'] == 'OK') {
+  //         final element = data['rows'][0]['elements'][0];
+
+  //         final duration = element['duration_in_traffic']
+  //             ['value']; // Duration considering traffic in seconds
+
+  //         return {
+  //           'duration': duration,
+  //         };
+  //       } else {
+  //         print('Error in Distance Matrix API response: ${data['status']}');
+  //       }
+  //     } else {
+  //       print('Error fetching route data: ${response.statusCode}');
+  //     }
+  //   } catch (e) {
+  //     print('Error fetching route data: $e');
+  //   }
+
+  //   return null;
+  // }
