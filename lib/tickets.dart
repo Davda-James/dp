@@ -29,7 +29,12 @@ class UserTicketsPage extends StatelessWidget {
         final userId = user.uid;
 
         return Scaffold(
-          appBar: AppBar(title: Text('Your Tickets')),
+          appBar: AppBar(
+            title: Text('Your Tickets',
+                style: const TextStyle(color: Color(0xFFF0F4FA))),
+            backgroundColor: Color(0xFF17203A), // Setting AppBar color
+            iconTheme: IconThemeData(color: Colors.white),
+          ),
           body: UserTicketsPageContent(userId: userId),
         );
       },

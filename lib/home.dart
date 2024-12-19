@@ -164,7 +164,7 @@ class HomePageState extends State<HomePage>
     }
 
     if (selectedSeat == null && availableSeats.isNotEmpty) {
-      selectedSeat = availableSeats[0];
+      selectedSeat = availableSeats.isNotEmpty ? availableSeats[0] : null;
     }
 
     return Padding(
@@ -292,6 +292,7 @@ class HomePageState extends State<HomePage>
               selectedSeats.add(seatNumber); // Mark seat as booked locally
             });
             _showSuccessToast(seatNumber.toString());
+            Navigator.pop(context); // Close the booking sheet
           });
         }).catchError((error) {
           _showErrorDialog("Failed to update booking");

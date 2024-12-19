@@ -114,7 +114,7 @@ class WelcomeState extends State<Welcome> {
                               opacity: _opacity,
                               duration: const Duration(seconds: 1),
                               child: Text(
-                                'Welcome to Seamless Travel',
+                                'Welcome to GARUD',
                                 style: TextStyle(
                                   fontSize: screenWidth * 0.055,
                                   fontWeight: FontWeight.bold,
@@ -157,7 +157,7 @@ class WelcomeState extends State<Welcome> {
                                 opacity: _opacity,
                                 duration: const Duration(seconds: 1),
                                 child: Text(
-                                  'Join us and explore the convenience of our bus service! Tap the Get Started button to begin.',
+                                  'Ready to ride? \n Tap to Begin',
                                   style: TextStyle(
                                     fontSize: screenWidth * 0.04,
                                     color: Colors.black54,

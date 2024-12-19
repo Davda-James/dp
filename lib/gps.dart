@@ -272,7 +272,12 @@ class _MapScreenState extends State<MapScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('GPS Tracking Map'),
+        title: const Text(
+          'GPS Tracking Map',
+          style: TextStyle(color: Color(0xFFF0F4FA)),
+        ),
+        backgroundColor: Color(0xFF17203A), // Setting AppBar color
+        iconTheme: IconThemeData(color: Colors.white),
         elevation: 2,
       ),
       body: Column(

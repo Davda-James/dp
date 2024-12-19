@@ -1,6 +1,10 @@
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:image_picker_for_web/image_picker_for_web.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class ProfilePage extends StatelessWidget {
   @override
@@ -9,7 +13,10 @@ class ProfilePage extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       home: Scaffold(
         appBar: AppBar(
-          backgroundColor: Color(0xFF17203A),
+          title:
+              Text('Profile', style: const TextStyle(color: Color(0xFFF0F4FA))),
+          backgroundColor: Color(0xFF17203A), // Setting AppBar color
+          iconTheme: IconThemeData(color: Colors.white),
           elevation: 0,
           leading: IconButton(
             icon: Icon(Icons.arrow_back, color: Colors.white),
@@ -17,7 +24,7 @@ class ProfilePage extends StatelessWidget {
               Navigator.pop(context);
             },
           ),
-          centerTitle: true,
+          centerTitle: false,
         ),
         body: ProfileScreen(),
       ),
@@ -41,6 +48,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String? _userId; // Variable to store the user's ID
   String? _gender;
   String? _userName;
+  String? _profileImageUrl;
   @override
   void initState() {
     super.initState();
@@ -75,6 +83,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         // genderController.text = data?['gender'] ?? '';
         _gender = data?['gender'] ?? '';
         genderController.text = _gender ?? '';
+        _profileImageUrl = data?['profileImageUrl'] ?? '';
         setState(() {});
       }
     }
@@ -94,6 +103,37 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  Future<void> uploadProfileImage() async {
+    try {
+      setState(() {
+        _profileImageUrl = null; // Reset to indicate loading
+      });
+
+      final XFile? pickedImage =
+          await ImagePicker().pickImage(source: ImageSource.gallery);
+      if (pickedImage != null) {
+        String fileName = 'profile_images/$_userId-profile.jpg';
+        Reference storageRef = FirebaseStorage.instance.ref().child(fileName);
+        UploadTask uploadTask =
+            storageRef.putData(await pickedImage.readAsBytes());
+        TaskSnapshot snapshot = await uploadTask;
+        String downloadUrl = await snapshot.ref.getDownloadURL();
+
+        if (_userId != null) {
+          await FirebaseFirestore.instance
+              .collection('Users')
+              .doc(_userId)
+              .update({'profileImageUrl': downloadUrl});
+          setState(() {
+            _profileImageUrl = downloadUrl;
+          });
+        }
+      }
+    } catch (e) {
+      print("Error uploading profile image: $e");
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -103,18 +143,40 @@ class _ProfileScreenState extends State<ProfileScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              CircleAvatar(
-                radius: 60,
-                backgroundColor: Color(0xFF17203A),
+              GestureDetector(
+                onTap: () async {
+                  await uploadProfileImage();
+                },
                 child: CircleAvatar(
-                  radius: 55,
-                  backgroundColor: Colors.grey[200],
-                  child: ClipOval(
-                    child: Image.network(
-                      '', // Replace with an actual URL if available
-                      fit: BoxFit.cover,
-                      width: 100,
-                      height: 100,
+                  radius: 60,
+                  backgroundColor: Color(0xFF17203A),
+                  child: CircleAvatar(
+                    radius: 55,
+                    backgroundColor: Colors.grey[200],
+                    child: ClipOval(
+                      child: _profileImageUrl != null &&
+                              _profileImageUrl!.isNotEmpty
+                          ? CachedNetworkImage(
+                              imageUrl:
+                                  _profileImageUrl!, // Replace with an actual URL if available
+                              fit: BoxFit.cover,
+                              width: 100,
+                              height: 100,
+                              placeholder: (context, url) =>
+                                  CircularProgressIndicator(),
+                              errorWidget: (context, url, error) => Image.asset(
+                                'assets/images/boy.png',
+                                fit: BoxFit.cover,
+                                width: 100,
+                                height: 100,
+                              ),
+                            )
+                          : Image.asset(
+                              'assets/images/boy.png',
+                              fit: BoxFit.cover,
+                              width: 100,
+                              height: 100,
+                            ),
                     ),
                   ),
                 ),
@@ -305,5 +367,3 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 }
-
-  //  for gender
